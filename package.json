@@ -1,0 +1,13 @@
+{
+  "name": "volt-hr-hub",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Volt Europa HR quick links dashboard (Staff / Volunteers), gated to @volteuropa.org emails",
+  "scripts": {
+    "dev": "node dev-server.js",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

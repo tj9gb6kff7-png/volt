@@ -1,0 +1,73 @@
+{
+  "sections": [
+    {
+      "title": "Recruiting",
+      "links": [
+        {
+          "title": "Request a new vacancy",
+          "description": "Ask HR to publish a volunteer or paid staff vacancy on the website.",
+          "url": "https://docs.google.com/forms/d/e/1FAIpQLScnOkQToJZAFIuOlcZ1M36R1uC4fhKI9TNSbEPOsx2i_n9mew/viewform",
+          "icon": "megaphone",
+          "audience": ["staff", "volunteers"]
+        },
+        {
+          "title": "Questions about recruiting",
+          "description": "Reach the HR team at humanresources@volteuropa.org.",
+          "url": "mailto:humanresources@volteuropa.org",
+          "icon": "mail",
+          "audience": ["staff", "volunteers"]
+        }
+      ]
+    },
+    {
+      "title": "Tools & tutorials",
+      "links": [
+        {
+          "title": "Google Groups tutorial",
+          "description": "How to use and manage Google Groups at Volt.",
+          "url": "https://drive.google.com/file/d/10exjbq0D4FHgswb_Hcrehf5GG5CzCNvE/view",
+          "icon": "group",
+          "audience": ["staff", "volunteers"]
+        },
+        {
+          "title": "Asana tutorial",
+          "description": "Video walkthrough of how we work in Asana.",
+          "url": "https://www.youtube.com/watch?v=YkceB6IzNms",
+          "icon": "play",
+          "audience": ["staff", "volunteers"]
+        }
+      ]
+    },
+    {
+      "title": "IT support",
+      "links": [
+        {
+          "title": "Email the Help Desk",
+          "description": "Need IT support? Write to help@volteuropa.org.",
+          "url": "mailto:help@volteuropa.org",
+          "icon": "lifebuoy",
+          "audience": ["staff", "volunteers"]
+        }
+      ]
+    },
+    {
+      "title": "Leaving your position?",
+      "links": [
+        {
+          "title": "Team lead handover",
+          "description": "Fill in the handover form before you step down.",
+          "url": "https://forms.gle/xpHpnL5VRBWPnnkz5",
+          "icon": "handover",
+          "audience": ["staff", "volunteers"]
+        },
+        {
+          "title": "Book your offboarding call",
+          "description": "Schedule your offboarding call with HR.",
+          "url": "https://docs.google.com/forms/d/e/1FAIpQLSfcAw2oqsbtIEezEXNIN5EiOCVaswLgiQXtWGz57zP1raTOGA/viewform",
+          "icon": "calendar",
+          "audience": ["staff", "volunteers"]
+        }
+      ]
+    }
+  ]
+}
