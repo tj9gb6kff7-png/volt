@@ -21,7 +21,7 @@ function send(res, status, html, nonce, headers = {}) {
     'Referrer-Policy': 'no-referrer',
     'Content-Security-Policy':
       `default-src 'none'; style-src 'nonce-${nonce}'; script-src 'nonce-${nonce}'; ` +
-      `form-action 'self'; base-uri 'none'; frame-ancestors 'none'`,
+      `font-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'`,
     ...headers,
   });
   res.end(html);
@@ -56,7 +56,7 @@ module.exports = async function handler(req, res) {
     // Until then the dashboard is open to anyone with the link.
     if (!googleClientId) {
       if (path === '/' && (req.method === 'GET' || req.method === 'HEAD')) {
-        return send(res, 200, dashboardPage({ nonce, email: null, sections: content.sections }), nonce);
+        return send(res, 200, dashboardPage({ nonce, email: null, content }), nonce);
       }
       return redirect(res, '/');
     }
@@ -66,7 +66,7 @@ module.exports = async function handler(req, res) {
 
     if (path === '/' && (req.method === 'GET' || req.method === 'HEAD')) {
       if (!user) return redirect(res, '/login');
-      return send(res, 200, dashboardPage({ nonce, email: user, sections: content.sections }), nonce);
+      return send(res, 200, dashboardPage({ nonce, email: user, content }), nonce);
     }
 
     if (path === '/login' && (req.method === 'GET' || req.method === 'HEAD')) {

@@ -6,7 +6,7 @@ Live at https://volt.ermalasllani.eu
 
 ## Adding or changing links
 
-Edit `content/links.json`. Each link looks like this:
+Edit `content/links.json`. Links live under `sections`; each link looks like this:
 
 ```json
 {
@@ -19,10 +19,23 @@ Edit `content/links.json`. Each link looks like this:
 ```
 
 - `audience` decides where the link shows: `["staff"]`, `["volunteers"]`, or both.
-- `icon` is one of `megaphone`, `mail`, `group`, `play`, `lifebuoy`, `handover`, `calendar`, `link`.
+- `icon` is one of `megaphone`, `mail`, `group`, `play`, `lifebuoy`, `handover`, `calendar`, `policy`, `receipt`, `link`.
 - A section with no links for a view is hidden in that view.
 
+Email addresses go under `contacts` instead. They are shown as plain, selectable text with a Copy button rather than as links:
+
+```json
+{ "title": "IT Help Desk", "description": "Need IT support?", "email": "help@volteuropa.org", "audience": ["staff", "volunteers"] }
+```
+
+The Volunteers view opens by default; the order is set by `AUDIENCES` in `lib/views.js`.
+
 Pushing to the production branch redeploys the site.
+
+## Look and feel
+
+- Light and dark themes. The page follows the visitor's system setting, and the button in the top bar switches and remembers the choice.
+- Headings use Inter Black, body text uses Ubuntu. Both are served from `public/fonts` (licences alongside), so no third-party font service is contacted.
 
 ## How sign-in works
 

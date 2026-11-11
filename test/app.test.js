@@ -92,8 +92,11 @@ test('Google sign-in: Volt account gets a session', async () => {
   assert.equal(dash.status, 200);
   const html = await dash.text();
   assert.match(html, /jane\.doe@volteuropa\.org/);
+  assert.ok(!html.includes('mailto:'), 'emails are plain text, not links');
+  assert.match(html, /class="track" data-active="volunteers"/);
   for (const needle of ['1FAIpQLScnOkQToJZAFIuOlcZ1M36R1uC4fhKI9TNSbEPOsx2i_n9mew', '10exjbq0D4FHgswb_Hcrehf5GG5CzCNvE',
-    'YkceB6IzNms', 'mailto:help@volteuropa.org', 'mailto:humanresources@volteuropa.org', 'forms.gle/xpHpnL5VRBWPnnkz5',
+    'YkceB6IzNms', 'data-copy="help@volteuropa.org"', 'data-copy="humanresources@volteuropa.org"', 'forms.gle/xpHpnL5VRBWPnnkz5',
+    '1zmYPCFxYLvSZAQByMRnzYaI5bCcwJVTcXcMZSsT2Oiw', '1nokYTurZzq9ZFebi9Q0rRt4SGc8kd9VZ0FbM78fadnk/copy',
     '1FAIpQLSfcAw2oqsbtIEezEXNIN5EiOCVaswLgiQXtWGz57zP1raTOGA', 'panel-staff', 'panel-volunteers']) {
     assert.ok(html.includes(needle), needle);
   }

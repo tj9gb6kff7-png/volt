@@ -1,4 +1,24 @@
 {
+  "contacts": [
+    {
+      "title": "Recruiting questions",
+      "description": "For any questions about recruiting, write to HR.",
+      "email": "humanresources@volteuropa.org",
+      "audience": [
+        "staff",
+        "volunteers"
+      ]
+    },
+    {
+      "title": "IT Help Desk",
+      "description": "Need IT support? Write to the Help Desk team.",
+      "email": "help@volteuropa.org",
+      "audience": [
+        "staff",
+        "volunteers"
+      ]
+    }
+  ],
   "sections": [
     {
       "title": "Recruiting",
@@ -8,14 +28,10 @@
           "description": "Ask HR to publish a volunteer or paid staff vacancy on the website.",
           "url": "https://docs.google.com/forms/d/e/1FAIpQLScnOkQToJZAFIuOlcZ1M36R1uC4fhKI9TNSbEPOsx2i_n9mew/viewform",
           "icon": "megaphone",
-          "audience": ["staff", "volunteers"]
-        },
-        {
-          "title": "Questions about recruiting",
-          "description": "Reach the HR team at humanresources@volteuropa.org.",
-          "url": "mailto:humanresources@volteuropa.org",
-          "icon": "mail",
-          "audience": ["staff", "volunteers"]
+          "audience": [
+            "staff",
+            "volunteers"
+          ]
         }
       ]
     },
@@ -27,26 +43,45 @@
           "description": "How to use and manage Google Groups at Volt.",
           "url": "https://drive.google.com/file/d/10exjbq0D4FHgswb_Hcrehf5GG5CzCNvE/view",
           "icon": "group",
-          "audience": ["staff", "volunteers"]
+          "audience": [
+            "staff",
+            "volunteers"
+          ]
         },
         {
           "title": "Asana tutorial",
           "description": "Video walkthrough of how we work in Asana.",
           "url": "https://www.youtube.com/watch?v=YkceB6IzNms",
           "icon": "play",
-          "audience": ["staff", "volunteers"]
+          "audience": [
+            "staff",
+            "volunteers"
+          ]
         }
       ]
     },
     {
-      "title": "IT support",
+      "title": "Expenses",
       "links": [
         {
-          "title": "Email the Help Desk",
-          "description": "Need IT support? Write to help@volteuropa.org.",
-          "url": "mailto:help@volteuropa.org",
-          "icon": "lifebuoy",
-          "audience": ["staff", "volunteers"]
+          "title": "Reimbursement policy",
+          "description": "What Volt reimburses and how to claim it.",
+          "url": "https://docs.google.com/document/d/1zmYPCFxYLvSZAQByMRnzYaI5bCcwJVTcXcMZSsT2Oiw/edit?tab=t.0#heading=h.mgfbh3eyvo01",
+          "icon": "policy",
+          "audience": [
+            "staff",
+            "volunteers"
+          ]
+        },
+        {
+          "title": "Expense report template",
+          "description": "Opens your own copy of the expense report sheet to fill in.",
+          "url": "https://docs.google.com/spreadsheets/d/1nokYTurZzq9ZFebi9Q0rRt4SGc8kd9VZ0FbM78fadnk/copy",
+          "icon": "receipt",
+          "audience": [
+            "staff",
+            "volunteers"
+          ]
         }
       ]
     },
@@ -58,14 +93,20 @@
           "description": "Fill in the handover form before you step down.",
           "url": "https://forms.gle/xpHpnL5VRBWPnnkz5",
           "icon": "handover",
-          "audience": ["staff", "volunteers"]
+          "audience": [
+            "staff",
+            "volunteers"
+          ]
         },
         {
           "title": "Book your offboarding call",
           "description": "Schedule your offboarding call with HR.",
           "url": "https://docs.google.com/forms/d/e/1FAIpQLSfcAw2oqsbtIEezEXNIN5EiOCVaswLgiQXtWGz57zP1raTOGA/viewform",
           "icon": "calendar",
-          "audience": ["staff", "volunteers"]
+          "audience": [
+            "staff",
+            "volunteers"
+          ]
         }
       ]
     }
