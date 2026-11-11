@@ -5,10 +5,7 @@ const http = require('node:http');
 
 process.env.SESSION_SECRET = 'test-secret-test-secret-test-secret-1234';
 process.env.APP_URL = 'https://hub.example';
-process.env.RESEND_API_KEY = 'test';
 process.env.GOOGLE_CLIENT_ID = 'client-123';
-const sent = [];
-require('../lib/mail').sendLoginEmail = async (email, link) => sent.push({ email, link });
 const crypto = require('node:crypto');
 const { publicKey, privateKey } = crypto.generateKeyPairSync('rsa', { modulusLength: 2048 });
 const google = require('../lib/google');
@@ -75,46 +72,12 @@ test('dashboard is not served without a session', async () => {
   assert.equal(forged.status, 303);
 });
 
-test('outside addresses get no email', async () => {
-  const res = await post('/login', { email: 'someone@gmail.com' });
-  assert.equal(res.status, 400);
-  assert.equal(sent.length, 0);
-});
-
-test('full sign-in flow, then sign out', async () => {
-  const res = await post('/login', { email: 'Jane.Doe@volteuropa.org' });
-  assert.equal(res.status, 200);
-  assert.match(await res.text(), /Check your inbox/);
-  assert.equal(sent.length, 1);
-  assert.equal(sent[0].email, 'jane.doe@volteuropa.org');
-  assert.ok(sent[0].link.startsWith('https://hub.example/auth?token='));
-
-  await post('/login', { email: 'jane.doe@volteuropa.org' });
-  assert.equal(sent.length, 1, 'second request within a minute is throttled');
-
-  const cb = await get(sent[0].link.replace('https://hub.example', ''));
-  assert.equal(cb.status, 303);
-  const cookie = cb.headers.get('set-cookie');
-  assert.match(cookie, /HttpOnly; Secure; SameSite=Lax/);
-
-  const dash = await get('/', cookie.split(';')[0]);
-  assert.equal(dash.status, 200);
-  const html = await dash.text();
-  assert.match(html, /jane\.doe@volteuropa\.org/);
-  for (const needle of ['1FAIpQLScnOkQToJZAFIuOlcZ1M36R1uC4fhKI9TNSbEPOsx2i_n9mew', '10exjbq0D4FHgswb_Hcrehf5GG5CzCNvE',
-    'YkceB6IzNms', 'mailto:help@volteuropa.org', 'mailto:humanresources@volteuropa.org', 'forms.gle/xpHpnL5VRBWPnnkz5',
-    '1FAIpQLSfcAw2oqsbtIEezEXNIN5EiOCVaswLgiQXtWGz57zP1raTOGA', 'panel-staff', 'panel-volunteers']) {
-    assert.ok(html.includes(needle), needle);
-  }
-
-  const out = await fetch(base + '/logout', { method: 'POST', redirect: 'manual' });
-  assert.match(out.headers.get('set-cookie'), /Max-Age=0/);
-});
-
-test('bad sign-in link shows an error', async () => {
-  const res = await get('/auth?token=nope');
-  assert.equal(res.status, 400);
-  assert.equal(res.headers.get('set-cookie'), null);
+test('email-link routes are gone', async () => {
+  const res = await post('/login', { email: 'jane.doe@volteuropa.org' });
+  assert.equal(res.status, 303);
+  const old = await get('/auth?token=' + auth.createToken('login', 'jane.doe@volteuropa.org', 60));
+  assert.equal(old.status, 303);
+  assert.equal(old.headers.get('set-cookie'), null);
 });
 
 test('Google sign-in: Volt account gets a session', async () => {
@@ -127,7 +90,15 @@ test('Google sign-in: Volt account gets a session', async () => {
   const session = res.headers.getSetCookie().find((c) => c.startsWith(auth.COOKIE + '='));
   const dash = await get('/', session.split(';')[0]);
   assert.equal(dash.status, 200);
-  assert.match(await dash.text(), /jane\.doe@volteuropa\.org/);
+  const html = await dash.text();
+  assert.match(html, /jane\.doe@volteuropa\.org/);
+  for (const needle of ['1FAIpQLScnOkQToJZAFIuOlcZ1M36R1uC4fhKI9TNSbEPOsx2i_n9mew', '10exjbq0D4FHgswb_Hcrehf5GG5CzCNvE',
+    'YkceB6IzNms', 'mailto:help@volteuropa.org', 'mailto:humanresources@volteuropa.org', 'forms.gle/xpHpnL5VRBWPnnkz5',
+    '1FAIpQLSfcAw2oqsbtIEezEXNIN5EiOCVaswLgiQXtWGz57zP1raTOGA', 'panel-staff', 'panel-volunteers']) {
+    assert.ok(html.includes(needle), needle);
+  }
+  const out = await fetch(base + '/logout', { method: 'POST', redirect: 'manual' });
+  assert.match(out.headers.get('set-cookie'), /Max-Age=0/);
 });
 
 test('Google sign-in: everything else is refused', async () => {

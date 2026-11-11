@@ -1,7 +1,6 @@
 'use strict';
 const crypto = require('node:crypto');
 const auth = require('../lib/auth');
-const mail = require('../lib/mail');
 const google = require('../lib/google');
 const { loginPage, dashboardPage } = require('../lib/views');
 const content = require('../content/links.json');
@@ -12,10 +11,6 @@ const NONCE_COOKIE = 'volt_nonce';
 // SameSite=None because Google returns to us with a cross-site POST.
 const nonceCookie = (value, maxAge) =>
   `${NONCE_COOKIE}=${value}; Path=/auth/google; HttpOnly; Secure; SameSite=None; Max-Age=${maxAge}`;
-
-// Best-effort throttle: one email per address per minute per warm instance.
-const lastSent = new Map();
-const THROTTLE_MS = 60 * 1000;
 
 function send(res, status, html, nonce, headers = {}) {
   res.writeHead(status, {
@@ -57,8 +52,7 @@ module.exports = async function handler(req, res) {
     const cookies = auth.parseCookies(req.headers.cookie);
     const user = auth.verifyToken('session', cookies[auth.COOKIE]);
     const googleClientId = process.env.GOOGLE_CLIENT_ID || '';
-    const emailLogin = Boolean(process.env.RESEND_API_KEY);
-    const login = (opts) => loginPage({ nonce, google: Boolean(googleClientId), emailLogin, ...opts });
+    const login = (opts) => loginPage({ nonce, ...opts });
 
     if (path === '/' && (req.method === 'GET' || req.method === 'HEAD')) {
       if (!user) return redirect(res, '/login');
@@ -70,7 +64,10 @@ module.exports = async function handler(req, res) {
       return send(res, 200, login({}), nonce);
     }
 
-    if (path === '/auth/google' && req.method === 'GET' && googleClientId) {
+    if (path === '/auth/google' && req.method === 'GET') {
+      if (!googleClientId) {
+        return send(res, 503, login({ error: 'Google sign-in is not set up yet. Please contact the HR team.' }), nonce);
+      }
       const n = crypto.randomBytes(24).toString('base64url');
       return redirect(res, google.authUrl({ clientId: googleClientId, redirectUri: APP_URL + GOOGLE_CALLBACK, nonce: n }), {
         'Set-Cookie': nonceCookie(n, 600),
@@ -89,52 +86,6 @@ module.exports = async function handler(req, res) {
       }
       const session = auth.createToken('session', result.email, auth.SESSION_TTL_S);
       return redirect(res, '/', { 'Set-Cookie': [auth.sessionCookie(session, auth.SESSION_TTL_S), nonceCookie('', 0)] });
-    }
-
-    if (path === '/login' && req.method === 'POST' && emailLogin) {
-      const form = await readForm(req);
-      const email = auth.normaliseEmail(form.email);
-      if (!email) {
-        return send(
-          res,
-          400,
-          login({ email: String(form.email || '').slice(0, 120), error: 'Please use your @volteuropa.org email address.' }),
-          nonce
-        );
-      }
-      const now = Date.now();
-      if (now - (lastSent.get(email) || 0) > THROTTLE_MS) {
-        lastSent.set(email, now);
-        if (lastSent.size > 5000) lastSent.clear();
-        const token = auth.createToken('login', email, auth.LOGIN_TTL_S);
-        try {
-          await mail.sendLoginEmail(email, `${APP_URL}/auth?token=${encodeURIComponent(token)}`);
-        } catch (err) {
-          lastSent.delete(email);
-          console.error('Sign-in email failed:', err);
-          return send(
-            res,
-            502,
-            login({ email, error: 'We could not send the email just now. Please try again in a moment.' }),
-            nonce
-          );
-        }
-      }
-      return send(res, 200, login({ sentTo: email }), nonce);
-    }
-
-    if (path === '/auth' && req.method === 'GET') {
-      const email = auth.verifyToken('login', url.searchParams.get('token'));
-      if (!email) {
-        return send(
-          res,
-          400,
-          login({ error: 'That sign-in link is invalid or has expired. Request a new one below.' }),
-          nonce
-        );
-      }
-      const session = auth.createToken('session', email, auth.SESSION_TTL_S);
-      return redirect(res, '/', { 'Set-Cookie': auth.sessionCookie(session, auth.SESSION_TTL_S) });
     }
 
     if (path === '/logout' && req.method === 'POST') {

@@ -26,11 +26,9 @@ Pushing to the production branch redeploys the site.
 
 ## How sign-in works
 
-**Sign in with Google (one click, no code).** Shown when `GOOGLE_CLIENT_ID` is set. The visitor picks their Google account and is let in only if Google confirms it is a verified `@volteuropa.org` Workspace account. Personal Gmail and other organisations are refused.
+Visitors click **Sign in with Google** and pick their account. They are let in only if Google confirms it is a verified `@volteuropa.org` Workspace account; personal Gmail and other organisations are refused. No codes or emails are involved.
 
-**Email link (fallback).** Shown when `RESEND_API_KEY` is set. The visitor enters their `@volteuropa.org` address and gets a link valid for 15 minutes.
-
-Either way the result is a signed, HTTP-only session cookie that lasts 30 days. There is no database: links and sessions are HMAC-signed with `SESSION_SECRET`. Changing that secret signs everyone out.
+A successful sign-in sets a signed, HTTP-only session cookie that lasts 30 days. There is no database: sessions are HMAC-signed with `SESSION_SECRET`. Changing that secret signs everyone out.
 
 ### Setting up Google sign-in
 
@@ -43,20 +41,17 @@ Either way the result is a signed, HTTP-only session cookie that lasts 30 days. 
 
 | Variable | Purpose |
 | --- | --- |
-| `SESSION_SECRET` | Random string, 32+ characters. Signs links and sessions. |
-| `GOOGLE_CLIENT_ID` | Enables Sign in with Google. |
-| `RESEND_API_KEY` | Enables the email-link fallback. Must be allowed to send from the `MAIL_FROM` domain. |
-| `MAIL_FROM` | Optional. Defaults to `Volt HR Hub <login@ermalasllani.eu>`. |
-| `MAIL_REPLY_TO` | Optional reply-to address for sign-in emails. |
+| `SESSION_SECRET` | Random string, 32+ characters. Signs sessions. |
+| `GOOGLE_CLIENT_ID` | OAuth client ID for Sign in with Google. Required. |
 | `APP_URL` | Optional. Defaults to `https://volt.ermalasllani.eu`. |
 
 ## Local development
 
 ```bash
-npm run dev
+GOOGLE_CLIENT_ID=your-client-id npm run dev
 ```
 
-Opens on http://localhost:3000. Without `RESEND_API_KEY` the sign-in link is printed in the terminal instead of emailed.
+Opens on http://localhost:3000. Add `http://localhost:3000/auth/google/callback` as a redirect URI on the OAuth client to sign in locally.
 
 ```bash
 npm test
