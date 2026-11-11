@@ -124,3 +124,22 @@ test('Google sign-in: everything else is refused', async () => {
   const noCookie = await googleCallback(idToken({ nonce }));
   assert.equal(noCookie.status, 403, 'missing nonce cookie');
 });
+
+test('without a Google client ID the dashboard is open and shows no sign-in', async () => {
+  const saved = process.env.GOOGLE_CLIENT_ID;
+  delete process.env.GOOGLE_CLIENT_ID;
+  try {
+    const res = await get('/');
+    assert.equal(res.status, 200);
+    const html = await res.text();
+    assert.ok(html.includes('panel-volunteers'));
+    assert.ok(!html.includes('Sign out'));
+    for (const path of ['/login', '/auth/google']) {
+      const r = await get(path);
+      assert.equal(r.status, 303);
+      assert.equal(r.headers.get('location'), '/');
+    }
+  } finally {
+    process.env.GOOGLE_CLIENT_ID = saved;
+  }
+});

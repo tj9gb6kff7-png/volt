@@ -1,6 +1,6 @@
 # Volt Europa HR Hub
 
-Quick-links dashboard for Volt Europa HR processes, with a **Staff** view and a **Volunteers** view you can slide between. Only people with an `@volteuropa.org` email can sign in.
+Quick-links dashboard for Volt Europa HR processes, with a **Staff** view and a **Volunteers** view you can slide between. Once Google sign-in is configured, only people with an `@volteuropa.org` account can open it.
 
 Live at https://volt.ermalasllani.eu
 
@@ -28,6 +28,8 @@ Pushing to the production branch redeploys the site.
 
 Visitors click **Sign in with Google** and pick their account. They are let in only if Google confirms it is a verified `@volteuropa.org` Workspace account; personal Gmail and other organisations are refused. No codes or emails are involved.
 
+**Sign-in is only enforced when `GOOGLE_CLIENT_ID` is set.** Without it the dashboard is open to anyone who has the link.
+
 A successful sign-in sets a signed, HTTP-only session cookie that lasts 30 days. There is no database: sessions are HMAC-signed with `SESSION_SECRET`. Changing that secret signs everyone out.
 
 ### Setting up Google sign-in
@@ -42,7 +44,7 @@ A successful sign-in sets a signed, HTTP-only session cookie that lasts 30 days.
 | Variable | Purpose |
 | --- | --- |
 | `SESSION_SECRET` | Random string, 32+ characters. Signs sessions. |
-| `GOOGLE_CLIENT_ID` | OAuth client ID for Sign in with Google. Required. |
+| `GOOGLE_CLIENT_ID` | OAuth client ID for Sign in with Google. When unset, the dashboard is public. |
 | `APP_URL` | Optional. Defaults to `https://volt.ermalasllani.eu`. |
 
 ## Local development

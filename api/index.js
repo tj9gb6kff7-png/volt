@@ -50,8 +50,18 @@ module.exports = async function handler(req, res) {
     const url = new URL(req.url, 'http://localhost');
     const path = url.pathname.replace(/\/+$/, '') || '/';
     const cookies = auth.parseCookies(req.headers.cookie);
-    const user = auth.verifyToken('session', cookies[auth.COOKIE]);
     const googleClientId = process.env.GOOGLE_CLIENT_ID || '';
+
+    // Sign-in is only enforced once a Google client ID is configured.
+    // Until then the dashboard is open to anyone with the link.
+    if (!googleClientId) {
+      if (path === '/' && (req.method === 'GET' || req.method === 'HEAD')) {
+        return send(res, 200, dashboardPage({ nonce, email: null, sections: content.sections }), nonce);
+      }
+      return redirect(res, '/');
+    }
+
+    const user = auth.verifyToken('session', cookies[auth.COOKIE]);
     const login = (opts) => loginPage({ nonce, ...opts });
 
     if (path === '/' && (req.method === 'GET' || req.method === 'HEAD')) {
@@ -65,16 +75,13 @@ module.exports = async function handler(req, res) {
     }
 
     if (path === '/auth/google' && req.method === 'GET') {
-      if (!googleClientId) {
-        return send(res, 503, login({ error: 'Google sign-in is not set up yet. Please contact the HR team.' }), nonce);
-      }
       const n = crypto.randomBytes(24).toString('base64url');
       return redirect(res, google.authUrl({ clientId: googleClientId, redirectUri: APP_URL + GOOGLE_CALLBACK, nonce: n }), {
         'Set-Cookie': nonceCookie(n, 600),
       });
     }
 
-    if (path === GOOGLE_CALLBACK && req.method === 'POST' && googleClientId) {
+    if (path === GOOGLE_CALLBACK && req.method === 'POST') {
       const form = await readForm(req);
       const result = await google.verifyIdToken(form.id_token, { clientId: googleClientId, nonce: cookies[NONCE_COOKIE] });
       if (!result.email) {
