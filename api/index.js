@@ -1,11 +1,17 @@
 'use strict';
 const crypto = require('node:crypto');
 const auth = require('../lib/auth');
-const { sendLoginEmail } = require('../lib/mail');
+const mail = require('../lib/mail');
+const google = require('../lib/google');
 const { loginPage, dashboardPage } = require('../lib/views');
 const content = require('../content/links.json');
 
 const APP_URL = (process.env.APP_URL || 'https://volt.ermalasllani.eu').replace(/\/$/, '');
+const GOOGLE_CALLBACK = '/auth/google/callback';
+const NONCE_COOKIE = 'volt_nonce';
+// SameSite=None because Google returns to us with a cross-site POST.
+const nonceCookie = (value, maxAge) =>
+  `${NONCE_COOKIE}=${value}; Path=/auth/google; HttpOnly; Secure; SameSite=None; Max-Age=${maxAge}`;
 
 // Best-effort throttle: one email per address per minute per warm instance.
 const lastSent = new Map();
@@ -37,7 +43,7 @@ async function readForm(req) {
   if (!raw && req.readable) {
     for await (const chunk of req) {
       raw += chunk;
-      if (raw.length > 4096) break;
+      if (raw.length > 16384) break;
     }
   }
   return Object.fromEntries(new URLSearchParams(raw));
@@ -48,7 +54,11 @@ module.exports = async function handler(req, res) {
   try {
     const url = new URL(req.url, 'http://localhost');
     const path = url.pathname.replace(/\/+$/, '') || '/';
-    const user = auth.verifyToken('session', auth.parseCookies(req.headers.cookie)[auth.COOKIE]);
+    const cookies = auth.parseCookies(req.headers.cookie);
+    const user = auth.verifyToken('session', cookies[auth.COOKIE]);
+    const googleClientId = process.env.GOOGLE_CLIENT_ID || '';
+    const emailLogin = Boolean(process.env.RESEND_API_KEY);
+    const login = (opts) => loginPage({ nonce, google: Boolean(googleClientId), emailLogin, ...opts });
 
     if (path === '/' && (req.method === 'GET' || req.method === 'HEAD')) {
       if (!user) return redirect(res, '/login');
@@ -57,17 +67,38 @@ module.exports = async function handler(req, res) {
 
     if (path === '/login' && (req.method === 'GET' || req.method === 'HEAD')) {
       if (user) return redirect(res, '/');
-      return send(res, 200, loginPage({ nonce }), nonce);
+      return send(res, 200, login({}), nonce);
     }
 
-    if (path === '/login' && req.method === 'POST') {
+    if (path === '/auth/google' && req.method === 'GET' && googleClientId) {
+      const n = crypto.randomBytes(24).toString('base64url');
+      return redirect(res, google.authUrl({ clientId: googleClientId, redirectUri: APP_URL + GOOGLE_CALLBACK, nonce: n }), {
+        'Set-Cookie': nonceCookie(n, 600),
+      });
+    }
+
+    if (path === GOOGLE_CALLBACK && req.method === 'POST' && googleClientId) {
+      const form = await readForm(req);
+      const result = await google.verifyIdToken(form.id_token, { clientId: googleClientId, nonce: cookies[NONCE_COOKIE] });
+      if (!result.email) {
+        const error =
+          result.error === 'domain'
+            ? 'That Google account is not an @volteuropa.org account. Please sign in with your Volt account.'
+            : 'Google sign-in did not complete. Please try again.';
+        return send(res, 403, login({ error }), nonce, { 'Set-Cookie': nonceCookie('', 0) });
+      }
+      const session = auth.createToken('session', result.email, auth.SESSION_TTL_S);
+      return redirect(res, '/', { 'Set-Cookie': [auth.sessionCookie(session, auth.SESSION_TTL_S), nonceCookie('', 0)] });
+    }
+
+    if (path === '/login' && req.method === 'POST' && emailLogin) {
       const form = await readForm(req);
       const email = auth.normaliseEmail(form.email);
       if (!email) {
         return send(
           res,
           400,
-          loginPage({ nonce, email: String(form.email || '').slice(0, 120), error: 'Please use your @volteuropa.org email address.' }),
+          login({ email: String(form.email || '').slice(0, 120), error: 'Please use your @volteuropa.org email address.' }),
           nonce
         );
       }
@@ -77,19 +108,19 @@ module.exports = async function handler(req, res) {
         if (lastSent.size > 5000) lastSent.clear();
         const token = auth.createToken('login', email, auth.LOGIN_TTL_S);
         try {
-          await sendLoginEmail(email, `${APP_URL}/auth?token=${encodeURIComponent(token)}`);
+          await mail.sendLoginEmail(email, `${APP_URL}/auth?token=${encodeURIComponent(token)}`);
         } catch (err) {
           lastSent.delete(email);
           console.error('Sign-in email failed:', err);
           return send(
             res,
             502,
-            loginPage({ nonce, email, error: 'We could not send the email just now. Please try again in a moment.' }),
+            login({ email, error: 'We could not send the email just now. Please try again in a moment.' }),
             nonce
           );
         }
       }
-      return send(res, 200, loginPage({ nonce, sentTo: email }), nonce);
+      return send(res, 200, login({ sentTo: email }), nonce);
     }
 
     if (path === '/auth' && req.method === 'GET') {
@@ -98,7 +129,7 @@ module.exports = async function handler(req, res) {
         return send(
           res,
           400,
-          loginPage({ nonce, error: 'That sign-in link is invalid or has expired. Request a new one below.' }),
+          login({ error: 'That sign-in link is invalid or has expired. Request a new one below.' }),
           nonce
         );
       }

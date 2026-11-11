@@ -26,19 +26,28 @@ Pushing to the production branch redeploys the site.
 
 ## How sign-in works
 
-1. The visitor enters their email. Anything that is not `@volteuropa.org` is refused.
-2. They get an email (sent through Resend) with a sign-in link valid for 15 minutes.
-3. Opening the link sets a signed, HTTP-only session cookie that lasts 30 days.
+**Sign in with Google (one click, no code).** Shown when `GOOGLE_CLIENT_ID` is set. The visitor picks their Google account and is let in only if Google confirms it is a verified `@volteuropa.org` Workspace account. Personal Gmail and other organisations are refused.
 
-No database: links and sessions are HMAC-signed with `SESSION_SECRET`. Changing that secret signs everyone out.
+**Email link (fallback).** Shown when `RESEND_API_KEY` is set. The visitor enters their `@volteuropa.org` address and gets a link valid for 15 minutes.
+
+Either way the result is a signed, HTTP-only session cookie that lasts 30 days. There is no database: links and sessions are HMAC-signed with `SESSION_SECRET`. Changing that secret signs everyone out.
+
+### Setting up Google sign-in
+
+1. In the [Google Cloud console](https://console.cloud.google.com/apis/credentials), create an **OAuth client ID** of type **Web application**.
+2. Add `https://volt.ermalasllani.eu/auth/google/callback` under **Authorised redirect URIs**.
+3. On the OAuth consent screen, choose **Internal** if the project belongs to the volteuropa.org Workspace; otherwise **External** and publish it (only the basic `openid` and `email` scopes are used, so no Google review is needed).
+4. Put the client ID in Vercel as `GOOGLE_CLIENT_ID` and redeploy. No client secret is needed.
 
 ## Configuration (Vercel environment variables)
 
 | Variable | Purpose |
 | --- | --- |
 | `SESSION_SECRET` | Random string, 32+ characters. Signs links and sessions. |
-| `RESEND_API_KEY` | Resend key allowed to send from the `MAIL_FROM` domain. |
+| `GOOGLE_CLIENT_ID` | Enables Sign in with Google. |
+| `RESEND_API_KEY` | Enables the email-link fallback. Must be allowed to send from the `MAIL_FROM` domain. |
 | `MAIL_FROM` | Optional. Defaults to `Volt HR Hub <login@ermalasllani.eu>`. |
+| `MAIL_REPLY_TO` | Optional reply-to address for sign-in emails. |
 | `APP_URL` | Optional. Defaults to `https://volt.ermalasllani.eu`. |
 
 ## Local development

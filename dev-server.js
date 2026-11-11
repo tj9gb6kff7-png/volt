@@ -5,6 +5,7 @@ process.env.SESSION_SECRET ||= require('node:crypto').randomBytes(32).toString('
 const port = process.env.PORT || 3000;
 process.env.APP_URL ||= `http://localhost:${port}`;
 if (!process.env.RESEND_API_KEY) {
+  process.env.RESEND_API_KEY = 'dev';
   require('./lib/mail').sendLoginEmail = async (email, link) => console.log(`Sign-in link for ${email}:\n${link}`);
 }
 const handler = require('./api/index');

@@ -5,8 +5,32 @@ const http = require('node:http');
 
 process.env.SESSION_SECRET = 'test-secret-test-secret-test-secret-1234';
 process.env.APP_URL = 'https://hub.example';
+process.env.RESEND_API_KEY = 'test';
+process.env.GOOGLE_CLIENT_ID = 'client-123';
 const sent = [];
 require('../lib/mail').sendLoginEmail = async (email, link) => sent.push({ email, link });
+const crypto = require('node:crypto');
+const { publicKey, privateKey } = crypto.generateKeyPairSync('rsa', { modulusLength: 2048 });
+const google = require('../lib/google');
+google.fetchKeys = async () => [{ ...publicKey.export({ format: 'jwk' }), kid: 'k1', alg: 'RS256', use: 'sig' }];
+const b64 = (o) => Buffer.from(JSON.stringify(o)).toString('base64url');
+function idToken(claims, key = privateKey) {
+  const body = `${b64({ alg: 'RS256', kid: 'k1' })}.${b64({
+    iss: 'https://accounts.google.com', aud: 'client-123', exp: Math.floor(Date.now() / 1000) + 300,
+    email: 'jane.doe@volteuropa.org', email_verified: true, hd: 'volteuropa.org', ...claims })}`;
+  return `${body}.${crypto.sign('RSA-SHA256', Buffer.from(body), key).toString('base64url')}`;
+}
+async function googleStart() {
+  const res = await get('/auth/google');
+  const to = new URL(res.headers.get('location'));
+  return { to, nonce: to.searchParams.get('nonce'), cookie: res.headers.get('set-cookie').split(';')[0] };
+}
+const googleCallback = (token, cookie) =>
+  fetch(base + '/auth/google/callback', {
+    method: 'POST', redirect: 'manual',
+    headers: { 'content-type': 'application/x-www-form-urlencoded', ...(cookie ? { cookie } : {}) },
+    body: new URLSearchParams({ id_token: token }),
+  });
 const auth = require('../lib/auth');
 const handler = require('../api/index');
 
@@ -91,4 +115,41 @@ test('bad sign-in link shows an error', async () => {
   const res = await get('/auth?token=nope');
   assert.equal(res.status, 400);
   assert.equal(res.headers.get('set-cookie'), null);
+});
+
+test('Google sign-in: Volt account gets a session', async () => {
+  const { to, nonce, cookie } = await googleStart();
+  assert.equal(to.origin + to.pathname, 'https://accounts.google.com/o/oauth2/v2/auth');
+  assert.equal(to.searchParams.get('redirect_uri'), 'https://hub.example/auth/google/callback');
+  assert.equal(to.searchParams.get('hd'), 'volteuropa.org');
+  const res = await googleCallback(idToken({ nonce }), cookie);
+  assert.equal(res.status, 303);
+  const session = res.headers.getSetCookie().find((c) => c.startsWith(auth.COOKIE + '='));
+  const dash = await get('/', session.split(';')[0]);
+  assert.equal(dash.status, 200);
+  assert.match(await dash.text(), /jane\.doe@volteuropa\.org/);
+});
+
+test('Google sign-in: everything else is refused', async () => {
+  const { nonce, cookie } = await googleStart();
+  const other = crypto.generateKeyPairSync('rsa', { modulusLength: 2048 }).privateKey;
+  const cases = {
+    'gmail account': idToken({ nonce, email: 'jane@gmail.com', hd: undefined }),
+    'other workspace': idToken({ nonce, email: 'jane@other.org', hd: 'other.org' }),
+    'volt address without hd claim': idToken({ nonce, hd: undefined }),
+    'unverified email': idToken({ nonce, email_verified: false }),
+    'wrong audience': idToken({ nonce, aud: 'someone-else' }),
+    'wrong issuer': idToken({ nonce, iss: 'https://evil.example' }),
+    'expired': idToken({ nonce, exp: 1 }),
+    'wrong nonce': idToken({ nonce: 'other' }),
+    'forged signature': idToken({ nonce }, other),
+    'garbage': 'a.b.c',
+  };
+  for (const [name, token] of Object.entries(cases)) {
+    const res = await googleCallback(token, cookie);
+    assert.equal(res.status, 403, name);
+    assert.ok(!res.headers.getSetCookie().some((c) => c.startsWith(auth.COOKIE + '=')), name);
+  }
+  const noCookie = await googleCallback(idToken({ nonce }));
+  assert.equal(noCookie.status, 403, 'missing nonce cookie');
 });
